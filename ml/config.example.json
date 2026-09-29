@@ -1,0 +1,21 @@
+{
+  "classes": [
+    "__rest__",
+    "__unknown__",
+    "REMPLACER_PAR_UNE_CLASSE_LSF_VALIDEE"
+  ],
+  "train_signers": ["personne-01", "personne-02"],
+  "val_signers": ["personne-03"],
+  "test_signers": ["personne-04"],
+  "epochs": 30,
+  "batch_size": 32,
+  "seed": 42,
+  "learning_rate": 0.001,
+  "threshold": 0.85,
+  "hold_ms": 500,
+  "release_ms": 450,
+  "dataset": "Nom et version de la ressource autorisée",
+  "license": "Droits à confirmer pour les données ET la diffusion des poids",
+  "version": "lsf-isolated-v1",
+  "distribution_authorized": false
+}
