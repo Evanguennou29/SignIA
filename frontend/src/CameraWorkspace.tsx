@@ -6,7 +6,6 @@ import {
   Download,
   Trash2,
   ShieldCheck,
-  ArrowUpRight,
   Scan,
   Hand,
   Check,
@@ -47,15 +46,12 @@ const POSE_EDGES = [
   [12, 24],
   [23, 24],
 ];
-type Entry = { text: string; date: string };
 export default function CameraWorkspace() {
   const [text, setText] = useState(""),
     [notice, setNotice] = useState(""),
     [edited, setEdited] = useState(false),
     [mirror, setMirror] = useState(true),
     [points, setPoints] = useState(true),
-    [remember, setRemember] = useState(false),
-    [history, setHistory] = useState<Entry[]>([]),
     [online, setOnline] = useState(navigator.onLine);
   const canvas = useRef<HTMLCanvasElement>(null),
     lastPoints = useRef<Landmarks>({ left: [], right: [], pose: [], face: [] }),
@@ -116,57 +112,10 @@ export default function CameraWorkspace() {
     };
   }, []);
   useEffect(() => {
-    try {
-      if (localStorage.getItem("signia-history-enabled") === "true") {
-        setRemember(true);
-        const entries = JSON.parse(
-          localStorage.getItem("signia-history") ?? "[]",
-        );
-        if (Array.isArray(entries))
-          setHistory(
-            entries
-              .filter(
-                (e) =>
-                  typeof e?.text === "string" && typeof e?.date === "string",
-              )
-              .slice(0, 10),
-          );
-      }
-    } catch {
-      setNotice("Le stockage local est indisponible.");
-    }
-  }, []);
-  useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(""), 5000);
     return () => clearTimeout(timer);
   }, [notice]);
-  const toggleHistory = (enabled: boolean) => {
-    try {
-      if (enabled) localStorage.setItem("signia-history-enabled", "true");
-      else {
-        localStorage.removeItem("signia-history-enabled");
-        localStorage.removeItem("signia-history");
-        setHistory([]);
-      }
-      setRemember(enabled);
-    } catch {
-      setNotice("Impossible d’activer le stockage dans ce navigateur.");
-    }
-  };
-  const save = () => {
-    try {
-      const entries = [
-        { text, date: new Date().toISOString() },
-        ...history,
-      ].slice(0, 10);
-      localStorage.setItem("signia-history", JSON.stringify(entries));
-      setHistory(entries);
-      setNotice("Texte enregistré sur cet appareil.");
-    } catch {
-      setNotice("Le texte n’a pas pu être enregistré.");
-    }
-  };
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(text);
@@ -236,31 +185,12 @@ export default function CameraWorkspace() {
   }, []);
   return (
     <div className="workspace">
-      <div className="workspace-heading">
-        <div>
-          <span className="eyebrow">VOTRE ESPACE, VOTRE RYTHME</span>
-          <h1>
-            Place au <em>mouvement.</em>
-          </h1>
-          <p>
-            Explorez le suivi en direct. Chaque image reste sur votre appareil.
-          </p>
-        </div>
-        <span className="privacy-badge">
-          <ShieldCheck size={17} /> Traitement local
-        </span>
-      </div>
-      {!online && (
-        <div role="status" className="alert">
-          Vous êtes hors connexion. Le suivi déjà chargé peut continuer ; un
-          redémarrage peut nécessiter une connexion.
-        </div>
-      )}
+      {!online && <div role="status" className="alert">Service indisponible : connexion requise pour charger les modèles de suivi.</div>}
       <div className="camera-grid">
         <section className="camera-panel" aria-label="Capture caméra">
           <div className="panel-header">
             <span>
-              <span className="status-dot" /> Votre caméra
+              <span className={camera.active ? "status-dot active" : "status-dot"} /> Caméra
             </span>
             <span className="small-status" role="status">
               {camera.state}
@@ -293,19 +223,8 @@ export default function CameraWorkspace() {
                 <span className="camera-icon">
                   <Camera size={31} />
                 </span>
-                <h2>Un espace pour vos gestes.</h2>
-                <p>
-                  Placez les mains, le buste et le visage
-                  <br />
-                  dans le cadre, puis ouvrez la caméra.
-                </p>
-                <button
-                  className="button lime"
-                  onClick={() => void camera.start()}
-                >
-                  <Camera size={17} /> Démarrer la caméra
-                </button>
-                <span>La caméra démarre uniquement à votre demande.</span>
+                <h2>Caméra inactive</h2>
+                <span>Activez la caméra avec le bouton sous l’aperçu.</span>
               </div>
             )}
             {camera.state === "Chargement" && (
@@ -343,7 +262,7 @@ export default function CameraWorkspace() {
                   className="button primary"
                   onClick={() => void camera.start()}
                 >
-                  <Camera size={16} /> Ouvrir la caméra
+                  <Camera size={16} /> Activer la caméra
                 </button>
               )}
               <label className="camera-select">
@@ -381,21 +300,15 @@ export default function CameraWorkspace() {
               </label>
             </div>
           </div>
-          <div className="capture-tip">
-            <Hand size={17} />
-            <p>
-              Lumière face à vous, fond dégagé, mains entièrement visibles. Le
-              miroir modifie seulement l’aperçu.
-            </p>
-          </div>
+          <details className="capture-tip"><summary><Hand size={17} /> Conseils de cadrage</summary><p>Placez-vous face à la caméra, avec le visage, le buste et les deux mains visibles. Évitez le contre-jour et les mains hors cadre. Le miroir ne change que l’aperçu.</p></details>
         </section>
         <section className="text-panel" aria-label="Résultats et édition">
           <div className="panel-header">
-            <span>Les mots, à leur rythme.</span>
+            <span>Résultat textuel</span>
             <span className="badge">
               {camera.manifest
                 ? "SIGNES ISOLÉS"
-                : "RECONNAISSANCE EN PRÉPARATION"}
+                : "MODÈLE INDISPONIBLE"}
             </span>
           </div>
           <div className="model-note">
@@ -413,9 +326,6 @@ export default function CameraWorkspace() {
                   ? "Vocabulaire défini. Les mots reconnus ne constituent pas une traduction grammaticale."
                   : "Le suivi repère votre mouvement. Aucun signe LSF ne sera reconnu tant qu’un modèle entraîné, autorisé et évalué n’est pas installé."}
               </p>
-              <a href="#/aide">
-                Voir le périmètre réel <ArrowUpRight size={13} />
-              </a>
             </div>
           </div>
           {camera.modelError && (
@@ -424,13 +334,13 @@ export default function CameraWorkspace() {
             </p>
           )}
           <div className="provisional">
-            <span>RÉSULTAT PROVISOIRE</span>
-            <p>{camera.provisional || "Aucun résultat provisoire."}</p>
+            <span>ÉTAT DE DÉTECTION</span>
+            <p>{camera.provisional || (camera.active ? "Aucune main détectée" : "En attente de la caméra")}</p>
           </div>
           <label className="text-label" htmlFor="transcript">
             {edited
-              ? "TEXTE CORRIGÉ MANUELLEMENT"
-              : "TEXTE VALIDÉ · MODIFIABLE"}
+              ? "TEXTE MODIFIÉ"
+              : "TEXTE · MODIFIABLE"}
           </label>
           <textarea
             id="transcript"
@@ -440,7 +350,7 @@ export default function CameraWorkspace() {
               setText(e.target.value);
               setEdited(true);
             }}
-            placeholder="Votre texte apparaîtra ici après validation d’un signe. Vous pouvez aussi saisir ou corriger du texte."
+            placeholder="Le résultat apparaîtra lorsqu’un modèle LSF sera disponible. Vous pouvez saisir ou corriger le texte."
           />
           <div className="text-tools">
             <button onClick={() => void copy()} disabled={!text}>
@@ -460,29 +370,6 @@ export default function CameraWorkspace() {
               <Trash2 size={16} /> Effacer
             </button>
           </div>
-          <div className="history-option">
-            <label>
-              <input
-                type="checkbox"
-                checked={remember}
-                onChange={(e) => toggleHistory(e.target.checked)}
-              />{" "}
-              Activer l’historique sur cet appareil
-            </label>
-            <p>
-              Facultatif. Le texte est conservé uniquement quand vous cliquez
-              sur « Enregistrer ». Désactiver efface l’historique.
-            </p>
-            {remember && (
-              <button
-                className="button secondary"
-                disabled={!text}
-                onClick={save}
-              >
-                Enregistrer ce texte
-              </button>
-            )}
-          </div>
         </section>
       </div>
       <div className="session-bottom">
@@ -495,27 +382,6 @@ export default function CameraWorkspace() {
             : "Les performances s’affichent pendant le suivi."}
         </span>
       </div>
-      {history.length > 0 && (
-        <section className="history-list">
-          <h2>Vos textes enregistrés</h2>
-          {history.map((entry, i) => (
-            <article key={entry.date + i}>
-              <span>{new Date(entry.date).toLocaleString("fr-FR")}</span>
-              <p>{entry.text}</p>
-              <button
-                className="button secondary"
-                onClick={() => {
-                  setText(entry.text);
-                  setEdited(true);
-                  setNotice("Texte restauré dans l’éditeur.");
-                }}
-              >
-                Restaurer dans l’éditeur
-              </button>
-            </article>
-          ))}
-        </section>
-      )}
       <p className="toast" role="status" aria-live="polite">
         {notice && (
           <>

@@ -1,45 +1,19 @@
-# Architecture et contrat de modèle
+# Architecture
 
-React 19 + TypeScript + Vite, Tailwind 4 et CSS de composition. Contrôles natifs sémantiques ; icônes Lucide. Pas de backend, télémétrie, compte, vidéo sauvegardée ou collecte d’apprentissage. La branche caméra transmet uniquement des ImageBitmap **au worker local** ; les bitmaps sont fermés après extraction.
+Sign’IA is a static React and Vite application. There is no backend and no image or landmark upload. The browser asks for camera permission only after an explicit user action. Stopping the camera closes its media tracks and terminates the worker.
 
-## Cinq couches
+## Camera and tracking
 
-1. `useCamera.ts` : permissions, sélection, pistes, cycle de vie et frame scheduling (cible maximale 15 images/s). Jeton de génération pour arrêter aussi un flux retourné après annulation d’une demande de permission. Une seule image en vol, pas de file.
-2. `tracker.worker.ts` : Hand/Pose/Face Landmarker en mode VIDEO, CPU, sur la même image et le même timestamp monotone `performance.now()` (ms). Modèles et WASM de même origine. MediaPipe 0.10.32 utilise un fallback `self.import` dans un module worker ; `assets.mjs` produit des wrappers `.mjs` du chargeur officiel (export ModuleFactory), importés dynamiquement, sans eval. Il adapte aussi la déclaration de la fonction de debug `custom_dbg` en déclaration `var`, pour conserver sa portée en mode strict ES module. Les fichiers du paquet installé restent inchangés.
-3. `features.ts` et `ml/schema.py` : normalisation partagée et fenêtres causales.
-4. Inférence ONNX/WASM facultative et `TemporalGate` : seuil, maintien, suppression des doublons et réarmement après repos/inconnu. Pas d’accès aux images futures.
-5. UI : repères, états, résultat provisoire non annoncé image par image, mots validés éditables. Les mots sont séparés par ` · ` pour ne pas les faire passer pour une phrase traduite.
+`CameraWorkspace.tsx` owns the camera display, editing field, controls and camera help. `useCamera.ts` manages the camera stream and worker lifecycle. `tracker.worker.ts` initializes MediaPipe Tasks Vision and analyzes at most one frame at a time, with a target sampling rate of 15 frames per second. The preview and canvas are local to the browser. CSS mirroring affects the display only.
 
-## `signia-xy-mask-v1`
+MediaPipe hands, pose and face models estimate geometry. They do not classify LSF signs. The recognition manifest currently reports unavailable, so no prediction reaches the text field. Unknown and rest handling in the future recognizer must be calibrated from real authorized examples rather than arbitrary movement rules.
 
-Une frame = 261 float32 : 87 repères × `[x_norm, y_norm, présent]`.
+## Recognition pipeline status
 
-- Main étiquetée `Left` par le détecteur : 21 repères, ordre MediaPipe.
-- Main `Right` : 21 repères.
-- Pose : 33 repères.
-- Visage : indices `[1,4,33,133,362,263,61,291,13,14,70,300]`.
-- Centre = milieu des épaules pose 11/12 ; échelle = distance euclidienne des épaules en coordonnées normalisées image.
-- `x_norm=(x-centre_x)/échelle`, idem y. Le z n’est pas fusionné : ses conventions diffèrent entre tâches.
-- Un repère absent/non fini, ou une visibilité pose < 0,5, vaut `[0,0,0]`. Sans épaules fiables ou largeur < 0,02, la frame entière est invalide, pas imputée avec un corps inventé.
+`features.ts` contains the expected landmark schema, normalization, causal windows and prediction stabilization contracts. `ml/` contains experimental feature extraction and a temporal classifier/export path. These components have software tests, but no LSF dataset has been processed and no weights have been activated. They do not establish a useful or linguistically validated recognizer.
 
-Les coordonnées x/y sont normalisées par les dimensions natives de l’image. Les différences de ratio et de résolution sont un risque de généralisation à évaluer. L’overlay utilise les dimensions vidéo réelles et un affichage `object-fit: contain`.
+An eventual model requires the exact same landmark ordering, normalization, masks, sampling cadence and temporal window in training and browser inference. It also needs signer-disjoint evaluation, a measured rest and unknown class, controlled repeats and transitions, and confirmation that its weights may be redistributed. Until those conditions are met, the application makes no sign or sentence claims.
 
-### Miroir et latéralité
+## Deployment
 
-Les images d’inférence **ne sont jamais retournées**. Miroir CSS uniquement sur vidéo et canvas. Les labels Left/Right sont ceux du modèle sur l’image native, sans permutation additionnelle en JS ou Python. Les conventions anatomiques doivent être vérifiées sur les données choisies et avec une personne signante avant activation. Ne jamais augmenter les données par miroir sans traiter la latéralité et le sens linguistique.
-
-### Temps et fenêtres
-
-Entrée ONNX `landmarks` : `[1,32,261]`, sortie `logits` : `[1,n_classes]`. Batch fixe, opset 17. LSTM **unidirectionnel**, 96 unités, dernière sortie → tête linéaire. Fenêtre strictement passée. Chaque échantillon 15 Hz reprend la dernière frame observée **au plus tard** à son instant (maintien causal, aucune interpolation future). Une lacune >200 ms ou un buste perdu coupe la fenêtre. Le débit affiché compte les images effectivement traitées, pas les échantillons maintenus.
-
-Les deux premières classes doivent être `__rest__`, `__unknown__`. Softmax calculé après export. Seuil minimal autorisé 0,5 ; valeur initiale suggérée 0,85, maintien 500 ms et réarmement 450 ms. Ces valeurs sont configurables dans le manifest, à calibrer sur validation. Une interruption longue réinitialise la stabilisation. Un même mot peut être reconnu à nouveau après repos/inconnu durable ; il n’est pas répété à chaque image.
-
-## Confidentialité, stockage et performance
-
-Aucun repère dans localStorage, aucun transcript dans les logs. Historique : opt-in + sauvegarde explicite, dix textes maximum. Navigation/désactivation de la caméra termine le worker (cela libère ses modèles/tenseurs) et arrête toutes les pistes. L’initialisation a un timeout de 45 s ; une frame bloquée est arrêtée après 15 s. Les erreurs techniques du moteur sont limitées au message d’erreur, sans frame ou repère.
-
-Une future reconnaissance nécessite 32 pas/15 Hz ≈ 2,07 s de contexte initial + maintien. Ce n’est pas une latence de traduction mesurée. Le panneau affiche le temps de traitement observé d’une image (extraction + inférence éventuelle) et le débit réel du worker. Aucune latence ou précision marketing n’est annoncée.
-
-## WebMCP
-
-Outil facultatif `read_signia_status` : état caméra et booléen reconnaissance, aucun texte, image ou repère exposé. Schema vide, readOnlyHint=true, abort à la sortie. Sans support navigateur, aucun impact sur l’application. Les entrées supplémentaires sont rejetées.
+The output is `dist/`. Production requires HTTPS for camera access, same-origin ES modules and WebAssembly, and successful loading of the pinned tracking assets. The application runs fully in the browser; no Python service is required. Model artifacts for recognition, when authorized and evaluated, must be versioned, checksum-verified and available from the production origin.

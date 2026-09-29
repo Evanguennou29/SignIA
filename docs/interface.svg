@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="970" viewBox="0 0 1440 970" role="img" aria-labelledby="title desc">
+  <title id="title">Aperçu de l’interface Sign’IA</title>
+  <desc id="desc">Aperçu statique de l’écran caméra, avec un résultat vide et un modèle LSF indisponible.</desc>
+  <rect width="1440" height="970" fill="#f6f4ef"/>
+  <g font-family="Arial, Helvetica, sans-serif" fill="#17201d">
+    <path d="M0 102H1440" stroke="#d9ded4"/>
+    <path d="M76 64c-5-23 25-31 30-15s-29 29-24 9" fill="none" stroke="#174d3c" stroke-width="3"/>
+    <circle cx="107" cy="74" r="2" fill="#d9f36a"/>
+    <text x="121" y="76" font-size="34" font-weight="700" letter-spacing="-2">Sign’IA</text>
+    <text x="370" y="59" font-size="18" font-weight="700">Reconnaissance de signes LSF par caméra</text>
+    <text x="370" y="82" font-size="14" fill="#59665e">Le suivi local des mains est disponible, mais aucun signe LSF n’est reconnu sans modèle évalué.</text>
+    <rect x="1190" y="37" width="112" height="42" rx="21" fill="#fffefb" stroke="#d9ded4"/>
+    <path d="M1210 52h15v13h-15zM1212 49h11M1212 68h11" fill="none" stroke="#174d3c" stroke-width="2"/>
+    <text x="1233" y="63" font-size="13">Vocabulaire</text>
+    <rect x="1310" y="37" width="65" height="42" rx="21" fill="#fffefb" stroke="#d9ded4"/>
+    <circle cx="1331" cy="58" r="8" fill="none" stroke="#174d3c" stroke-width="2"/>
+    <text x="1345" y="63" font-size="13">Aide</text>
+  </g>
+  <rect x="76" y="139" width="794" height="766" rx="20" fill="#faf9f5" stroke="#d9ded4"/>
+  <text x="101" y="177" font-family="Arial, sans-serif" font-size="16" fill="#17201d">●  Caméra</text>
+  <text x="745" y="177" font-family="Arial, sans-serif" font-size="13" fill="#59665e">Caméra inactive</text>
+  <rect x="77" y="200" width="792" height="520" fill="#183d31"/>
+  <rect x="110" y="229" width="726" height="462" rx="18" fill="none" stroke="#fff" stroke-opacity=".14"/>
+  <circle cx="473" cy="432" r="31" fill="none" stroke="#d9f36a" stroke-opacity=".3"/>
+  <path d="M457 429h8l4-7h11l4 7h5v18h-32z" fill="none" stroke="#d9f36a" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="473" cy="437" r="5" fill="none" stroke="#d9f36a" stroke-width="3"/>
+  <text x="473" y="493" font-family="Arial, sans-serif" font-size="29" fill="#fff" text-anchor="middle">Caméra inactive</text>
+  <text x="473" y="522" font-family="Arial, sans-serif" font-size="15" fill="#e3e7df" text-anchor="middle">Activez la caméra avec le bouton sous l’aperçu.</text>
+  <rect x="104" y="743" width="218" height="52" rx="26" fill="#174d3c"/>
+  <path d="M125 761h14l4 4v11h-18zM129 758h7" fill="none" stroke="#fff" stroke-width="2"/>
+  <text x="154" y="775" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#fff">Activer la caméra</text>
+  <rect x="635" y="750" width="206" height="39" rx="8" fill="#fffefb" stroke="#d9ded4"/>
+  <text x="652" y="775" font-family="Arial, sans-serif" font-size="13" fill="#17201d">Caméra par défaut</text>
+  <rect x="105" y="819" width="17" height="17" rx="3" fill="#174d3c"/><path d="m109 827 4 4 7-9" fill="none" stroke="#fff" stroke-width="2"/>
+  <text x="131" y="833" font-family="Arial, sans-serif" font-size="13" fill="#17201d">Miroir visuel</text>
+  <rect x="255" y="819" width="17" height="17" rx="3" fill="#174d3c"/><path d="m259 827 4 4 7-9" fill="none" stroke="#fff" stroke-width="2"/>
+  <text x="281" y="833" font-family="Arial, sans-serif" font-size="13" fill="#17201d">Afficher les repères</text>
+  <text x="105" y="879" font-family="Arial, sans-serif" font-size="15" fill="#174d3c">Conseils de cadrage</text>
+  <rect x="894" y="139" width="470" height="766" rx="20" fill="#faf9f5" stroke="#d9ded4"/>
+  <text x="925" y="177" font-family="Arial, sans-serif" font-size="16" fill="#17201d">Résultat textuel</text>
+  <rect x="1196" y="151" width="143" height="28" rx="6" fill="#e5eadc"/>
+  <text x="1210" y="170" font-family="Arial, sans-serif" font-size="11" fill="#59665e">MODÈLE INDISPONIBLE</text>
+  <rect x="895" y="200" width="468" height="159" fill="#eef0e8"/>
+  <circle cx="933" cy="237" r="11" fill="none" stroke="#174d3c" stroke-width="2"/>
+  <path d="M933 230v8l5 3" fill="none" stroke="#174d3c" stroke-width="2"/>
+  <text x="959" y="242" font-family="Arial, sans-serif" font-size="15" font-weight="700" fill="#17201d">Modèle indisponible</text>
+  <text x="925" y="274" font-family="Arial, sans-serif" font-size="13" fill="#59665e">Le suivi repère votre mouvement. Aucun signe LSF</text>
+  <text x="925" y="295" font-family="Arial, sans-serif" font-size="13" fill="#59665e">ne sera reconnu sans modèle entraîné, autorisé</text>
+  <text x="925" y="316" font-family="Arial, sans-serif" font-size="13" fill="#59665e">et évalué.</text>
+  <text x="925" y="399" font-family="Arial, sans-serif" font-size="11" letter-spacing="1.5" fill="#59665e">ÉTAT DE DÉTECTION</text>
+  <text x="925" y="431" font-family="Arial, sans-serif" font-size="15" fill="#59665e">En attente de la caméra</text>
+  <text x="925" y="481" font-family="Arial, sans-serif" font-size="11" letter-spacing="1.5" fill="#59665e">TEXTE · MODIFIABLE</text>
+  <rect x="925" y="500" width="406" height="267" rx="8" fill="#fffefb" stroke="#d9ded4"/>
+  <text x="945" y="539" font-family="Georgia, serif" font-size="18" fill="#8b938a">Le résultat apparaîtra lorsqu’un modèle</text>
+  <text x="945" y="566" font-family="Georgia, serif" font-size="18" fill="#8b938a">LSF sera disponible.</text>
+  <path d="M925 768v1" stroke="#d9ded4"/>
+  <text x="925" y="806" font-family="Arial, sans-serif" font-size="14" fill="#174d3c">▢  Copier</text>
+  <text x="1030" y="806" font-family="Arial, sans-serif" font-size="14" fill="#174d3c">⇩  Exporter .txt</text>
+  <text x="1179" y="806" font-family="Arial, sans-serif" font-size="14" fill="#174d3c">▤  Effacer</text>
+  <text x="720" y="944" font-family="Arial, sans-serif" font-size="12" fill="#59665e" text-anchor="middle">Aperçu statique de l’interface. Aucun résultat linguistique n’est simulé.</text>
+</svg>
