@@ -2,6 +2,14 @@
 
 Consultation : 29 septembre 2026. Aucune vidéo de corpus ni aucun poids LSF n’a été téléchargé, entraîné ou redistribué pour cette livraison.
 
+## Dossier local lsf-data fourni par l’utilisateur
+
+Le dossier local contient 469 vidéos Éducation nationale, 100 vidéos Elix et 562 vidéos Laura Jauvert, soit 1 131 vidéos. Son fichier `vocabulaire.json` contient 1 141 entrées. Le contrôle des chemins référencés trouve neuf fichiers manquants. Une vidéo physique est associée à deux entrées du vocabulaire (« Paris » et « Paris (1) »). Les identifiants des trois sources sont disjoints : aucune classe n’est partagée entre elles. Les fichiers et le corpus restent hors du dépôt, conformément à la demande.
+
+Le README amont cite Éducation nationale, Elix et des playlists YouTube. Il ne précise pas de licence vidéo individuelle ni de conditions de redistribution pour les dérivés. La licence MIT du dépôt amont ne couvre que son code. Elix indique que les membres conservent les droits sur leurs vidéos et que certains usages nécessitent une autorisation ([mentions légales Elix](https://dico.elix-lsf.fr/mentions-legales)). YouTube rappelle que les auteurs détiennent normalement les droits de leurs vidéos ([aide sur les droits d’auteur](https://support.google.com/youtube/answer/2797466?hl=fr)). L’affirmation de l’utilisateur autorise l’entraînement local dans ce projet, mais les éléments publics consultés ne permettent pas de certifier la redistribution des vidéos ou de poids dérivés. Ne pas publier ces fichiers ou de poids entraînés avant clarification des droits.
+
+Chaque entrée ne donne qu’une vidéo et le corpus ne fournit pas d’identité de signant. Il n’est donc pas possible de constituer des ensembles équilibrés avec les mêmes classes et des signants disjoints, ou de mesurer les répétitions et transitions. Le vocabulaire exploitable reste vide. Aucun entraînement ni résultat de reconnaissance n’est déclaré.
+
 ## Dicta-Sign-LSF-v2
 
 - Fiche : https://hdl.handle.net/11403/dicta-sign-lsf-v2/v1

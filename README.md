@@ -49,7 +49,11 @@ Les tests navigateur emploient une caméra synthétique. Ils contrôlent le comp
 
 Les seuls modèles livrés sont les modèles génériques de suivi MediaPipe. Ils donnent des points de repère, pas des signes. Le vocabulaire LSF actif est vide.
 
-La publication Dicta-Sign-LSF-v2 décrit des dialogues LSF annotés, mais le droit d’accès aux médias, leur redistribution et les droits des poids dérivés doivent être vérifiés auprès des détenteurs. La publication seule n’accorde pas ces droits. La ressource STVD-LSF consultée indique un accès de recherche non commerciale sur accord signé ; aucun accord n’a été obtenu ni aucun média téléchargé. Les corpus ne sont pas intégrés au dépôt. Voir [docs/DATA.md](docs/DATA.md) pour les formats, annotations, conditions et sources.
+Le dossier local `lsf-data` fourni par l’utilisateur contient 1 131 vidéos et 1 141 entrées de vocabulaire. Le dépôt amont ne déclare pas de licence vidéo par fichier ; sa licence MIT couvre le code du dépôt, pas les vidéos. La provenance comprend Éducation nationale, Elix et des vidéos YouTube de Laura Jauvert. Aucune vidéo ni aucun poids issu de ces vidéos n’est intégré au dépôt ou au site public. Voir [docs/DATA.md](docs/DATA.md) pour le contrôle détaillé et les références de droits.
+
+Ce corpus ne permet pas de produire une évaluation exploitable : presque chaque signe n’a qu’une seule vidéo, aucune identité de personne signante n’est indiquée, neuf références de fichiers sont absentes et aucune classe n’est commune aux trois sources. Il ne permet donc ni séparation fiable des personnes entre apprentissage, validation et test, ni mesure honnête de généralisation. Aucun modèle n’a été entraîné à partir de ce dossier. L’utilisateur indique que les données sont libres de droit et autorise l’entraînement local ; les métadonnées amont ne suffisent toutefois pas à vérifier les droits d’utilisation et de redistribution des vidéos et des poids dérivés.
+
+Une étude LaboSignes récente décrit un système de reconnaissance de signes isolés LSF, mais son dépôt public ne distribue pas les poids du modèle ni une licence de réutilisation applicable ; sa démonstration envoie le flux de repères à un service distant. Sign’IA ne transmet pas les données de caméra à ce service. [Article LaboSignes](https://doi.org/10.1145/3772363.3799328) · [Dépôt de démonstration](https://gitlab.lisn.upsaclay.fr/mtals/publications/chi2026-poster-labosignes).
 
 Pour reprendre l’apprentissage, obtenir d’abord les droits d’accès et d’usage. Ensuite, fournir des clips isolés avec leurs annotations vérifiées, personnes, consentements, licence et temps de début/fin selon le schéma de `ml/schema.py`. Séparer les personnes entre apprentissage, validation et test avant tout fenêtrage. `ml/config.example.json` contient un gabarit ; ses noms de classes sont des exemples techniques et ne forment pas un vocabulaire Sign’IA. Le pipeline enregistre des métriques de classification par classe, macro-F1 et matrice de confusion. Aucun résultat linguistique n’est publié parce qu’aucune donnée réelle LSF n’a été évaluée.
 
@@ -63,7 +67,7 @@ Cloudflare Pages convient à ce site statique et gère HTTPS sur son sous-domain
 
 Configuration : utiliser le dossier `signia` comme racine, compiler avec `npm run build`, publier `dist/`, conserver le fichier `_headers` dans la sortie et choisir le nom du projet dans le compte. Pour un dépôt GitHub existant, le relier au projet Pages et régler la commande et le dossier comme ci-dessus. Pour une publication manuelle après authentification Cloudflare, lancer `npm exec --yes --package wrangler -- wrangler login`, puis `npm exec --yes --package wrangler -- wrangler pages deploy dist --project-name NOM-CHOISI` en remplaçant `NOM-CHOISI` par le nom retenu dans le compte. GitHub Pages est une autre option statique gratuite si le dépôt est public avec GitHub Free ; un dépôt privé exige un plan GitHub payant pour publier Pages.
 
-Un déploiement HTTPS externe n’a pas été réalisé : aucun accès Cloudflare ni dépôt GitHub n’est configuré dans cet environnement. Le site interne précédent n’est pas la cible externe demandée.
+Le projet Pages `signia-lsf-camera` est créé dans Cloudflare. Le déploiement public reste à publier : l’authentification Wrangler a expiré lors du retour OAuth. Une fois `wrangler login` achevé dans le même navigateur que celui ouvert par la commande, compiler puis publier `dist/` avec Wrangler. L’application ne devient pas une reconnaissance LSF par le seul fait d’être publiée.
 
 ## Mesures et limites
 
@@ -83,4 +87,13 @@ Le code Sign’IA est publié sous la licence MIT incluse. Les dépendances et m
 
 ## GitHub
 
-Le dossier est un dépôt Git local. Aucun dépôt distant GitHub n’est configuré. Pour publier le code, créer ou choisir un dépôt GitHub, puis ajouter son URL comme remote et pousser la branche `main`. Ne pas ajouter de corpus, vidéos de personnes, fichiers locaux `.env`, poids non autorisés ou résultats d’entraînement privés.
+Le remote `origin` pointe vers le dépôt fourni : `https://github.com/Evanguennou29/SignIA.git`. L’utilisateur effectuera lui-même le push. Après vérification des fichiers, exécuter depuis le dossier du projet :
+
+```sh
+git status --short
+git add README.md docs/DATA.md docs/VALIDATION.md
+git commit -m "Document LSF data review and deployment status"
+git push -u origin main
+```
+
+Ne pas ajouter le corpus, des vidéos de personnes, des fichiers locaux `.env`, des poids non autorisés ou des résultats d’entraînement privés. Le dossier `.cache/` est ignoré.
