@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   root: "frontend",
+  base: process.env.SIGNIA_GITHUB_PAGES === "true" ? "/SignIA/" : "/",
   plugins: [
     react(),
     tailwindcss(),

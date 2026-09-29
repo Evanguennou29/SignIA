@@ -263,7 +263,8 @@ export function useCamera(
       };
       const examples = await readExamples();
       const personalModel = fitPersonalModel(examples);
-      worker.postMessage({ type: "init", origin: location.origin, personalModel });
+      const assetRoot = new URL(import.meta.env.BASE_URL, location.href).href.replace(/\/$/, "");
+      worker.postMessage({ type: "init", origin: assetRoot, personalModel });
     } catch (e) {
       if (generation !== r.generation) return;
       stop();

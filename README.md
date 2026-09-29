@@ -74,13 +74,11 @@ La durée affichée correspond à la dernière image traitée ; la reconnaissanc
 
 ## Déploiement
 
-Le projet est statique : compiler avec `npm ci`, `npm run assets`, `npm run build`, puis publier le contenu du dossier `dist/` sur un hébergeur statique HTTPS qui sert les modules ES, workers et fichiers WASM de même origine. La caméra exige HTTPS en production. Cloudflare Pages et GitHub Pages hébergent les sites statiques ; GitHub Pages Free requiert un dépôt public. Aucun backend Python n’est requis.
+L’application fonctionne sans backend. GitHub Pages publie une version statique en HTTPS, nécessaire pour l’accès à la caméra. Le dépôt `Evanguennou29/SignIA` utilise le workflow `.github/workflows/pages.yml` : il installe Node.js 24, récupère et vérifie les modèles MediaPipe, lance les tests, construit `dist/` avec le préfixe du site et déploie le résultat à chaque push sur `main`.
 
-Cloudflare Pages convient à ce site statique et gère HTTPS sur son sous-domaine public. Sur l’offre Free consultée le 29 septembre 2026, les requêtes vers les ressources statiques sont annoncées gratuites et sans plafond. Les limites documentées sont de 500 constructions par mois, 20 000 fichiers par site et 25 Mio par fichier. Le plus gros asset de suivi de ce build est le fichier WASM d’environ 14,2 Mio ; il reste sous cette limite. L’application n’utilise pas de Function ni de Worker facturé à l’usage. Le coût prévu est 0 € tant que le compte reste sur Free et n’ajoute aucun service payant. Vérifier les [tarifs des ressources Pages](https://developers.cloudflare.com/pages/functions/pricing/) et les [limites actuelles](https://developers.cloudflare.com/pages/platform/limits/) avant publication.
+Pour activer la publication, ouvrir les paramètres du dépôt GitHub, puis **Pages**, et choisir **GitHub Actions** comme source. Depuis la racine du projet, pousser ensuite la branche `main`. Le workflow publie le site à l’adresse `https://evanguennou29.github.io/SignIA/`. L’adresse sera disponible après le premier déploiement réussi ; vérifier son état dans l’onglet Actions avant de la partager. GitHub Pages est disponible sans frais pour les dépôts publics avec GitHub Free ; les minutes Actions des dépôts publics sur les runners standards sont gratuites. [Documentation GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site) · [Tarification GitHub Actions](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
 
-Configuration : utiliser le dossier `signia` comme racine, compiler avec `npm run build`, publier `dist/`, conserver le fichier `_headers` dans la sortie et choisir le nom du projet dans le compte. Pour un dépôt GitHub existant, le relier au projet Pages et régler la commande et le dossier comme ci-dessus. Pour une publication manuelle après authentification Cloudflare, lancer `npm exec --yes --package wrangler -- wrangler login`, puis `npm exec --yes --package wrangler -- wrangler pages deploy dist --project-name NOM-CHOISI` en remplaçant `NOM-CHOISI` par le nom retenu dans le compte. GitHub Pages est une autre option statique gratuite si le dépôt est public avec GitHub Free ; un dépôt privé exige un plan GitHub payant pour publier Pages.
-
-Le projet Pages `signia-lsf-camera` est créé dans Cloudflare et Wrangler est authentifié sur le poste de développement. La tentative du 29 septembre 2026 n’a pas dépassé l’envoi initial : la connexion TLS du poste a échoué. Aucun lien public n’est donc confirmé. Après correction de cette connexion, reconstruire et publier avec Wrangler. Vérifier le domaine `.pages.dev` retourné, puis charger `/models/single-example.json` et le fichier binaire qu’il référence.
+Le build Pages utilise `/SignIA/` comme racine des fichiers : le code, les poids, les fichiers WASM et le worker sont ainsi chargés depuis le chemin du dépôt. En local et sur un hébergeur configuré à la racine d’un domaine, le build conserve `/`. Le modèle LSF dérivé et redistribuable est inclus ; les vidéos du corpus ne le sont pas.
 
 ## Mesures et limites
 
@@ -109,8 +107,8 @@ Le remote `origin` pointe vers le dépôt fourni : `https://github.com/Evanguenn
 git config --global --add safe.directory "C:/Users/evanf/Documents/Codex/2026-09-29/files-pasted-by-the-user-cr/outputs/signia"
 git status --short
 git add -A
-git commit -m "Train LSF sign references from the local corpus"
+git commit -m "Préparer le déploiement GitHub Pages"
 git push -u origin main
 ```
 
-Pour reconstruire et publier après rétablissement de la connexion TLS, lancer `npm ci`, `npm run assets`, `npm run build`, puis, dans PowerShell, définir `$env:XDG_CONFIG_HOME = (Resolve-Path .wrangler).Path` et exécuter `npm exec --cache .cache/npm --yes --package wrangler -- wrangler pages deploy dist --project-name signia-lsf-camera`. Le corpus, les vidéos, les fichiers `.env`, `.wrangler/` et les caches sont exclus par `.gitignore`. Le modèle de références autorisé est inclus afin que le site puisse le charger.
+Le corpus, les vidéos, les fichiers `.env`, `.wrangler/` et les caches sont exclus par `.gitignore`. Le modèle de références autorisé est inclus afin que le site puisse le charger.

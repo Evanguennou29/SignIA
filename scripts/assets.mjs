@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile, cp, readdir } from "node:fs/promises";
+import { mkdir, readFile, writeFile, cp, readdir, rm } from "node:fs/promises";
 import { createHash } from "node:crypto";
 const directory = new URL("../frontend/public/", import.meta.url);
 const assets = [
@@ -68,13 +68,6 @@ for (const name of await readdir(new URL("wasm/", directory))) {
     );
   }
 }
-await mkdir(new URL("ort/", directory), { recursive: true });
-for (const name of await readdir(
-  new URL("../node_modules/onnxruntime-web/dist/", import.meta.url),
-)) {
-  if (/^ort-wasm-simd-threaded\.(wasm|mjs)$/.test(name))
-    await cp(
-      new URL("../node_modules/onnxruntime-web/dist/" + name, import.meta.url),
-      new URL("ort/" + name, directory),
-    );
-}
+// This app loads the local DTW references and has no ONNX model. Remove stale
+// artifacts left by older builds so production uploads contain no unused WASM.
+await rm(new URL("ort/", directory), { recursive: true, force: true });

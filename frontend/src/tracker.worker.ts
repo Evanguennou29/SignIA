@@ -8,16 +8,10 @@ import {
   normalize,
   CausalWindow,
   TemporalGate,
-  validateManifest,
-  FEATURE_SIZE,
   type Landmarks,
-  type ModelManifest,
 } from "./features";
-import { decodePretrainedModel, recognizeWindow, type PersonalModel, type PretrainedManifest } from "./personalModel";
+import { decodePretrainedModel, recognizeWindow, WINDOW_SIZE, type PersonalModel, type PretrainedManifest } from "./personalModel";
 let hands: HandLandmarker, pose: PoseLandmarker, face: FaceLandmarker;
-let manifest: ModelManifest | null = null;
-let session: import("onnxruntime-web").InferenceSession | null = null;
-let ort: typeof import("onnxruntime-web") | null = null;
 let gate = new TemporalGate(350, 350, 0.56);
 const windowBuffer = new CausalWindow();
 let lastTime = -1;
@@ -75,38 +69,6 @@ self.onmessage = async ({ data }) => {
       });
       let modelError = "";
       try {
-        const response = await fetch(data.origin + "/models/recognition.json");
-        if (!response.ok) throw Error("Manifest indisponible");
-        manifest = validateManifest(await response.json());
-        if (manifest) {
-          const response = await fetch(data.origin + manifest.model);
-          if (!response.ok) throw Error("Poids indisponibles");
-          const bytes = await response.arrayBuffer();
-          const digest = Array.from(
-            new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)),
-          )
-            .map((v) => v.toString(16).padStart(2, "0"))
-            .join("");
-          if (digest !== manifest.sha256)
-            throw Error("Empreinte des poids incorrecte");
-          ort = await import("onnxruntime-web/wasm");
-          ort.env.wasm.wasmPaths = data.origin + "/ort/";
-          ort.env.wasm.numThreads = 1;
-          session = await ort.InferenceSession.create(bytes, {
-            executionProviders: ["wasm"],
-          });
-          gate = new TemporalGate(
-            manifest.holdMs,
-            manifest.releaseMs,
-            manifest.threshold,
-          );
-        }
-      } catch {
-        manifest = null;
-        session = null;
-        modelError = "Le modèle LSF installé n’a pas pu être validé ou chargé.";
-      }
-      try {
         const response = await fetch(data.origin + "/models/single-example.json");
         if (!response.ok) throw Error("Manifeste du modèle indisponible");
         const modelManifest = await response.json() as PretrainedManifest;
@@ -124,7 +86,7 @@ self.onmessage = async ({ data }) => {
         if (!modelError) modelError = "Le modèle du dictionnaire n’a pas pu être chargé.";
       }
       mergeModels();
-      self.postMessage({ type: "ready", manifest, modelError, personalModelReady: !!personalModel,
+      self.postMessage({ type: "ready", manifest: null, modelError, personalModelReady: !!personalModel,
         pretrainedReady: !!pretrainedModel, classCount: personalModel?.classes.length ?? 0,
         personalClassCount: userModel?.classes.length ?? 0 });
     }
@@ -174,7 +136,7 @@ self.onmessage = async ({ data }) => {
         lastMatchTime = -Infinity;
       }
       lastTime = t;
-      if ((session && manifest && ort) || personalModel) {
+      if (personalModel) {
         if (!h.landmarks.length || !features.some((v) => v !== 0)) {
           windowBuffer.reset();
           gate.reset();
@@ -182,9 +144,9 @@ self.onmessage = async ({ data }) => {
           lastMatchTime = -Infinity;
         } else {
           const buffer = windowBuffer.push(features, t);
-          const windowSize = manifest?.window ?? 32;
+          const windowSize = WINDOW_SIZE;
           if (buffer.length === windowSize) {
-            if (personalModel && !session && t - lastMatchTime >= 200) {
+            if (t - lastMatchTime >= 200) {
               lastMatchTime = t;
               const match = recognizeWindow(buffer.map((frame) => Array.from(frame)), personalModel);
               const index = match ? personalModel.classes.findIndex((item) => item.label === match.label) + 2 : 1;
@@ -194,33 +156,8 @@ self.onmessage = async ({ data }) => {
               }
               lastProvisional = provisional;
               if (gate.update(index, confidence, t)) validated = match?.label ?? "";
-            } else if (personalModel && !session) {
+            } else {
               provisional = lastProvisional;
-            } else if (manifest && ort && session) {
-            const packed = new Float32Array(manifest.window * FEATURE_SIZE);
-            buffer.forEach((x, i) => packed.set(x, i * FEATURE_SIZE));
-            const output = await session.run({
-              landmarks: new ort.Tensor("float32", packed, [
-                1,
-                manifest.window,
-                FEATURE_SIZE,
-              ]),
-            });
-            const logits = Array.from(output.logits.data as Float32Array);
-            if (
-              logits.length !== manifest.classes.length ||
-              logits.some((v) => !Number.isFinite(v))
-            )
-              throw Error("Sortie du modèle incompatible");
-            const max = Math.max(...logits);
-            const exp = logits.map((v) => Math.exp(v - max));
-            const total = exp.reduce((a, b) => a + b, 0);
-            const index = logits.indexOf(max);
-            confidence = exp[index] / total;
-            if (index > 1 && confidence >= manifest.threshold)
-              provisional = manifest.classes[index];
-            if (gate.update(index, confidence, t))
-              validated = manifest.classes[index];
             }
           }
         }
@@ -236,7 +173,7 @@ self.onmessage = async ({ data }) => {
         validated,
         confidence,
         features: Array.from(features),
-        recognition: !!session || !!personalModel,
+        recognition: !!personalModel,
       });
     }
   } catch (error) {
