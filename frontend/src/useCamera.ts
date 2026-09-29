@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import type { Landmarks, ModelManifest } from "./features";
+import { fitPersonalModel, readExamples, type PersonalModel } from "./personalModel";
 export type CameraState =
   | "Caméra inactive"
   | "Chargement"
@@ -21,6 +22,7 @@ export function cameraError(error: unknown) {
 export function useCamera(
   onWord: (word: string) => void,
   onLandmarks: (points: Landmarks) => void,
+  onFeatures: (features: number[]) => void = () => {},
 ) {
   const video = useRef<HTMLVideoElement>(null);
   const runtime = useRef<{
@@ -31,9 +33,12 @@ export function useCamera(
     timer: ReturnType<typeof setTimeout> | null;
   }>({ worker: null, stream: null, generation: 0, raf: 0, timer: null });
   const wordRef = useRef(onWord),
-    pointsRef = useRef(onLandmarks);
+    pointsRef = useRef(onLandmarks),
+    featuresRef = useRef(onFeatures),
+    workerRef = useRef<Worker | null>(null);
   wordRef.current = onWord;
   pointsRef.current = onLandmarks;
+  featuresRef.current = onFeatures;
   const [state, setState] = useState<CameraState>("Caméra inactive"),
     [error, setError] = useState(""),
     [devices, setDevices] = useState<MediaDeviceInfo[]>([]),
@@ -48,7 +53,9 @@ export function useCamera(
     }),
     [provisional, setProvisional] = useState(""),
     [manifest, setManifest] = useState<ModelManifest | null>(null),
-    [modelError, setModelError] = useState("");
+    [modelError, setModelError] = useState(""),
+    [recognizing, setRecognizing] = useState(false),
+    [recognitionClasses, setRecognitionClasses] = useState(0);
   const clear = useCallback(() => {
     const r = runtime.current;
     r.generation++;
@@ -59,6 +66,7 @@ export function useCamera(
     r.stream = null;
     r.worker?.terminate();
     r.worker = null;
+    workerRef.current = null;
     if (video.current) video.current.srcObject = null;
   }, []);
   const stop = useCallback(() => {
@@ -66,6 +74,8 @@ export function useCamera(
     setActive(false);
     setState("Caméra inactive");
     setProvisional("");
+    setRecognizing(false);
+    setRecognitionClasses(0);
     setStats({ hands: 0, pose: false, face: false, ms: 0, fps: 0 });
     pointsRef.current({ left: [], right: [], pose: [], face: [] });
   }, [clear]);
@@ -151,6 +161,7 @@ export function useCamera(
         { type: "module" },
       );
       r.worker = worker;
+      workerRef.current = worker;
       let busy = false,
         lastSent = -1000,
         previousVideo = -1;
@@ -209,9 +220,16 @@ export function useCamera(
         if (data.type === "ready") {
           if (r.timer) clearTimeout(r.timer);
           setManifest(data.manifest);
-          setModelError(data.modelError);
+          setModelError(data.personalModelReady || data.pretrainedReady ? "" : data.modelError || "Modèle indisponible.");
           setState("Prêt");
+          setRecognizing(!!data.personalModelReady || !!data.pretrainedReady || !!data.manifest);
+          setRecognitionClasses(data.classCount ?? 0);
           r.raf = requestAnimationFrame(loop);
+        }
+        if (data.type === "model") {
+          setRecognizing(!!data.personalModelReady || !!data.pretrainedReady);
+          setRecognitionClasses(data.classCount ?? 0);
+          setModelError(data.personalModelReady || data.pretrainedReady ? "" : "Modèle indisponible.");
         }
         if (data.type === "error") fail(data.message);
         if (data.type === "result") {
@@ -228,6 +246,7 @@ export function useCamera(
           );
           setProvisional(data.provisional);
           pointsRef.current(data.landmarks);
+          featuresRef.current(data.features);
           if (data.validated) wordRef.current(data.validated);
           if (now - lastReport >= 700) {
             setStats({
@@ -242,12 +261,19 @@ export function useCamera(
           }
         }
       };
-      worker.postMessage({ type: "init", origin: location.origin });
+      const examples = await readExamples();
+      const personalModel = fitPersonalModel(examples);
+      worker.postMessage({ type: "init", origin: location.origin, personalModel });
     } catch (e) {
       if (generation !== r.generation) return;
       stop();
       setError(cameraError(e));
     }
+  };
+  const updateModel = async () => {
+    const personalModel = fitPersonalModel(await readExamples());
+    workerRef.current?.postMessage({ type: "model", personalModel });
+    setRecognizing(personalModel.classes.length > 0);
   };
   return {
     video,
@@ -261,6 +287,9 @@ export function useCamera(
     provisional,
     manifest,
     modelError,
+    recognizing,
+    recognitionClasses,
+    updateModel,
     start,
     stop,
   };

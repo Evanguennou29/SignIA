@@ -83,9 +83,9 @@ export class TemporalGate {
   private last = -1;
   private restSince: number | null = null;
   constructor(
-    public holdMs = 500,
-    public releaseMs = 450,
-    public threshold = 0.85,
+    public holdMs = 350,
+    public releaseMs = 350,
+    public threshold = 0.56,
   ) {}
   reset() {
     this.candidate = -1;

@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { useCamera } from "./useCamera";
 import { FACE_INDICES, type Landmarks } from "./features";
+import { addExample, clearExamples, readExamples, suggestPhrase, WINDOW_SIZE, type SignExample } from "./personalModel";
+import { LSF_VOCABULARY } from "./vocabulary";
 const HAND_EDGES = [
   [0, 1],
   [1, 2],
@@ -48,11 +50,18 @@ const POSE_EDGES = [
 ];
 export default function CameraWorkspace() {
   const [text, setText] = useState(""),
+    [wordHistory, setWordHistory] = useState<string[]>([]),
     [notice, setNotice] = useState(""),
     [edited, setEdited] = useState(false),
     [mirror, setMirror] = useState(true),
     [points, setPoints] = useState(true),
-    [online, setOnline] = useState(navigator.onLine);
+    [online, setOnline] = useState(navigator.onLine),
+    [dictionary] = useState<string[]>([...LSF_VOCABULARY]),
+    [selectedLabel, setSelectedLabel] = useState(""),
+    [examples, setExamples] = useState<SignExample[]>([]),
+    [recordingSign, setRecordingSign] = useState(false),
+    [trainingMessage, setTrainingMessage] = useState("");
+  const capture = useRef<{ label: string; frames: number[][] } | null>(null);
   const canvas = useRef<HTMLCanvasElement>(null),
     lastPoints = useRef<Landmarks>({ left: [], right: [], pose: [], face: [] }),
     showPoints = useRef(points);
@@ -99,9 +108,55 @@ export default function CameraWorkspace() {
   }, []);
   useEffect(() => draw(lastPoints.current), [points, draw]);
   const camera = useCamera((word) => {
+    setWordHistory((history) => [...history, word].slice(-80));
     setText((t) => (t ? t + " · " : "") + word);
     setNotice("Signe validé : " + word);
-  }, draw);
+  }, draw, (features) => {
+    const activeCapture = capture.current;
+    if (!activeCapture) return;
+    let visibleHandPoints = 0;
+    for (let i = 0; i < 42; i++) visibleHandPoints += features[i * 3 + 2] > 0 ? 1 : 0;
+    if (visibleHandPoints < 8) return;
+    if (!features.some((value) => value !== 0)) return;
+    activeCapture.frames.push(features);
+    if (activeCapture.frames.length < WINDOW_SIZE) return;
+    capture.current = null;
+    setRecordingSign(false);
+    const example = { label: activeCapture.label, frames: activeCapture.frames.slice(0, WINDOW_SIZE) };
+    void addExample(example).then(async () => {
+      const saved = await readExamples();
+      setExamples(saved);
+      await camera.updateModel();
+      const count = saved.filter((item) => item.label === example.label).length;
+      setTrainingMessage(count >= 3 ? `${example.label} : ${count} exemples enregistrés. Le modèle personnel est actif.` : `${example.label} : ${count} exemple${count > 1 ? "s" : ""}. Il en faut au moins trois pour reconnaître ce signe.`);
+    }).catch(() => setTrainingMessage("Les exemples n’ont pas pu être enregistrés sur cet appareil."));
+  });
+  useEffect(() => {
+    if (!camera.active && capture.current) {
+      capture.current = null;
+      setRecordingSign(false);
+      setTrainingMessage("Enregistrement interrompu.");
+    }
+  }, [camera.active]);
+  useEffect(() => {
+    void readExamples().then(setExamples).catch(() => {});
+  }, []);
+  const startSignCapture = () => {
+    const label = selectedLabel.trim();
+    if (!camera.active || !dictionary.includes(label)) return;
+    capture.current = { label, frames: [] };
+    setRecordingSign(true);
+    setTrainingMessage("Signez maintenant, en entier, face à la caméra.");
+  };
+  const removeTraining = async () => {
+    if (!window.confirm("Effacer les exemples de signes stockés sur cet appareil ?")) return;
+    capture.current = null;
+    setRecordingSign(false);
+    await clearExamples();
+    setExamples([]);
+    await camera.updateModel();
+    setTrainingMessage("Les exemples et le modèle personnel ont été effacés de cet appareil.");
+  };
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
     window.addEventListener("online", update);
@@ -137,8 +192,8 @@ export default function CameraWorkspace() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
     setNotice("Export du texte lancé.");
   };
-  const live = useRef({ state: camera.state, recognition: !!camera.manifest });
-  live.current = { state: camera.state, recognition: !!camera.manifest };
+  const live = useRef({ state: camera.state, recognition: camera.recognizing });
+  live.current = { state: camera.state, recognition: camera.recognizing };
   useEffect(() => {
     type Context = {
       registerTool: (
@@ -301,14 +356,27 @@ export default function CameraWorkspace() {
             </div>
           </div>
           <details className="capture-tip"><summary><Hand size={17} /> Conseils de cadrage</summary><p>Placez-vous face à la caméra, avec le visage, le buste et les deux mains visibles. Évitez le contre-jour et les mains hors cadre. Le miroir ne change que l’aperçu.</p></details>
+          <details className="training-panel">
+            <summary><Hand size={17} /> Entraîner mon vocabulaire</summary>
+            <p>Le modèle chargé utilise une seule vidéo par signe. Vous pouvez remplacer une référence par au moins trois prises de votre caméra. Les vidéos ne sont pas conservées ; seuls vos repères de mouvement restent sur cet appareil.</p>
+            <label htmlFor="training-sign">Signe du dictionnaire</label>
+            <input id="training-sign" list="lsf-vocabulary" value={selectedLabel} onChange={(event) => setSelectedLabel(event.target.value)} placeholder="Rechercher un signe" autoComplete="off" />
+            <datalist id="lsf-vocabulary">{dictionary.map((label) => <option key={label} value={label} />)}</datalist>
+            <div className="training-actions">
+              <button className="button primary" onClick={startSignCapture} disabled={!camera.active || recordingSign || !dictionary.includes(selectedLabel.trim())}>
+                {recordingSign ? "Enregistrement en cours…" : "Enregistrer un exemple"}
+              </button>
+              <button className="training-clear" onClick={() => void removeTraining()} disabled={!examples.length}>Effacer les exemples</button>
+            </div>
+            <p className="training-count">{recordingSign ? "Signez pendant deux secondes, mains et buste visibles." : `${new Set(examples.filter((item) => examples.filter((entry) => entry.label === item.label).length >= 3).map((item) => item.label)).size} signe${new Set(examples.filter((item) => examples.filter((entry) => entry.label === item.label).length >= 3).map((item) => item.label)).size > 1 ? "s" : ""} prêt${new Set(examples.filter((item) => examples.filter((entry) => entry.label === item.label).length >= 3).map((item) => item.label)).size > 1 ? "s" : ""} · ${examples.length} prises enregistrées`}</p>
+            {trainingMessage && <p className="training-message" role="status">{trainingMessage}</p>}
+          </details>
         </section>
         <section className="text-panel" aria-label="Résultats et édition">
           <div className="panel-header">
             <span>Résultat textuel</span>
             <span className="badge">
-              {camera.manifest
-                ? "SIGNES ISOLÉS"
-                : "MODÈLE INDISPONIBLE"}
+              {camera.recognizing ? `SIGNES ISOLÉS · ${camera.recognitionClasses} CLASSES` : camera.active ? "CHARGEMENT DU MODÈLE" : "CAMÉRA INACTIVE"}
             </span>
           </div>
           <div className="model-note">
@@ -317,14 +385,12 @@ export default function CameraWorkspace() {
             </span>
             <div>
               <strong>
-                {camera.manifest
-                  ? "Reconnaissance de signes isolés"
-                  : "Modèle indisponible"}
+                {camera.recognizing ? "Modèle local chargé" : camera.active ? "Chargement du modèle" : "Reconnaissance locale"}
               </strong>
               <p>
-                {camera.manifest
-                  ? "Vocabulaire défini. Les mots reconnus ne constituent pas une traduction grammaticale."
-                  : "Le suivi repère votre mouvement. Aucun signe LSF ne sera reconnu tant qu’un modèle entraîné, autorisé et évalué n’est pas installé."}
+                {camera.recognizing
+                  ? `Classification de signes isolés. Une référence vidéo par classe ; la précision n’a pas été évaluée. Les séquences et les phrases ne sont pas traduites.`
+                  : camera.modelError || (camera.active ? "Chargement des modèles de suivi et des références de signes." : "Activez la caméra pour charger les modèles de suivi et les références de signes.")}
               </p>
             </div>
           </div>
@@ -350,7 +416,7 @@ export default function CameraWorkspace() {
               setText(e.target.value);
               setEdited(true);
             }}
-            placeholder="Le résultat apparaîtra lorsqu’un modèle LSF sera disponible. Vous pouvez saisir ou corriger le texte."
+            placeholder="Les signes isolés reconnus apparaîtront ici. Vous pouvez saisir ou corriger le texte."
           />
           <div className="text-tools">
             <button onClick={() => void copy()} disabled={!text}>
@@ -362,6 +428,7 @@ export default function CameraWorkspace() {
             <button
               onClick={() => {
                 setText("");
+                setWordHistory([]);
                 setEdited(false);
                 setNotice("Texte effacé.");
               }}
@@ -370,11 +437,23 @@ export default function CameraWorkspace() {
               <Trash2 size={16} /> Effacer
             </button>
           </div>
+          <div className="word-history" aria-live="polite">
+            <div className="history-heading"><span>Mots validés</span><span>{wordHistory.length}</span></div>
+            {wordHistory.length ? <ol>{wordHistory.slice(-12).map((word, index) => <li key={`${word}-${index}`}>{word}</li>)}</ol> : <p>Les signes confirmés apparaîtront ici dans leur ordre de détection.</p>}
+            <div className="suggestion-tools">
+              <button className="button suggestion-button" disabled={!wordHistory.length} onClick={() => {
+                setText(suggestPhrase(wordHistory));
+                setEdited(true);
+                setNotice("Proposition créée à partir des mots validés.");
+              }}>Proposer une phrase</button>
+              <span>Quelques patrons locaux, à relire avant usage.</span>
+            </div>
+          </div>
         </section>
       </div>
       <div className="session-bottom">
         <span>
-          <ShieldCheck size={15} /> Aucune vidéo ni aucun repère enregistré.
+          <ShieldCheck size={15} /> Aucune vidéo conservée. Les exemples de repères restent sur cet appareil.
         </span>
         <span>
           {camera.active && camera.stats.fps

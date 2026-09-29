@@ -1,14 +1,14 @@
 # Ressources LSF, droits et attributions
 
-Consultation : 29 septembre 2026. Aucune vidéo de corpus ni aucun poids LSF n’a été téléchargé, entraîné ou redistribué pour cette livraison.
+Consultation : 29 septembre 2026. Les vidéos fournies par l’utilisateur ont été lues localement pour extraire un modèle de références temporelles. Aucune vidéo n’a été copiée dans le dépôt. Le modèle généré ne contient que des points de repère quantifiés et les libellés associés.
 
 ## Dossier local lsf-data fourni par l’utilisateur
 
 Le dossier local contient 469 vidéos Éducation nationale, 100 vidéos Elix et 562 vidéos Laura Jauvert, soit 1 131 vidéos. Son fichier `vocabulaire.json` contient 1 141 entrées. Le contrôle des chemins référencés trouve neuf fichiers manquants. Une vidéo physique est associée à deux entrées du vocabulaire (« Paris » et « Paris (1) »). Les identifiants des trois sources sont disjoints : aucune classe n’est partagée entre elles. Les fichiers et le corpus restent hors du dépôt, conformément à la demande.
 
-Le README amont cite Éducation nationale, Elix et des playlists YouTube. Il ne précise pas de licence vidéo individuelle ni de conditions de redistribution pour les dérivés. La licence MIT du dépôt amont ne couvre que son code. Elix indique que les membres conservent les droits sur leurs vidéos et que certains usages nécessitent une autorisation ([mentions légales Elix](https://dico.elix-lsf.fr/mentions-legales)). YouTube rappelle que les auteurs détiennent normalement les droits de leurs vidéos ([aide sur les droits d’auteur](https://support.google.com/youtube/answer/2797466?hl=fr)). L’affirmation de l’utilisateur autorise l’entraînement local dans ce projet, mais les éléments publics consultés ne permettent pas de certifier la redistribution des vidéos ou de poids dérivés. Ne pas publier ces fichiers ou de poids entraînés avant clarification des droits.
+Le README amont cite Éducation nationale, Elix et des playlists YouTube. Il ne précise pas de licence vidéo individuelle ni de conditions de redistribution pour les dérivés. La licence MIT du dépôt amont ne couvre que son code. Elix indique que les membres conservent les droits sur leurs vidéos et que certains usages nécessitent une autorisation ([mentions légales Elix](https://dico.elix-lsf.fr/mentions-legales)). YouTube rappelle que les auteurs détiennent normalement les droits de leurs vidéos ([aide sur les droits d’auteur](https://support.google.com/youtube/answer/2797466?hl=fr)). L’utilisateur déclare disposer des droits et autorise l’entraînement ainsi que l’intégration du modèle généré ; les pages amont ne permettent pas de vérifier cette déclaration ni les licences individuelles. Le modèle du site est donc dérivé des fichiers que l’utilisateur a fournis sous cette autorisation.
 
-Chaque entrée ne donne qu’une vidéo et le corpus ne fournit pas d’identité de signant. Il n’est donc pas possible de constituer des ensembles équilibrés avec les mêmes classes et des signants disjoints, ou de mesurer les répétitions et transitions. Le vocabulaire exploitable reste vide. Aucun entraînement ni résultat de reconnaissance n’est déclaré.
+Chaque entrée ne donne qu’une vidéo et le corpus ne fournit pas d’identité de signant. Il n’est donc pas possible de constituer des ensembles équilibrés avec les mêmes classes et des signants disjoints, ou de mesurer les répétitions et transitions. L’utilisateur a autorisé l’entraînement local et indiqué que les données étaient libres de droit. Les licences individuelles ne sont toutefois pas indiquées par l’amont. L’extraction locale produit 1 024 classes à partir d’un clip chacune ; 107 vidéos n’ont pas donné huit instants consécutifs avec le buste détecté, neuf références de fichiers sont absentes, et l’alias « Paris (1) » est exclu parce qu’il réutilise le clip de « paris ». Aucun jeu indépendant ni métrique de précision n’est déclaré.
 
 ## Dicta-Sign-LSF-v2
 
@@ -33,12 +33,7 @@ L’accès est réservé à la **recherche non commerciale**. Il faut téléchar
 
 ## Procédure d’intégration
 
-1. Obtenir les droits d’usage et vérifier les droits de redistribution des poids, conserver la preuve hors Git.
-2. Faire valider les classes et segments par des personnes compétentes en LSF, avec consentements ou base de droits du corpus.
-3. Adapter les annotations corpus vers le CSV documenté. Aucun convertisseur inventé pour un format inaccessible.
-4. Affecter des identités disjointes à train/validation/test ; préserver ces identités au découpage des clips.
-5. Réextraire mains/pose/visage avec les mêmes assets Tasks v1 et normalisation que le navigateur.
-6. Évaluer, analyser les confusions et les transitions, tester la caméra réelle et la latéralité, puis revoir les droits de diffusion avant activation.
+Le script `ml/train_single_example.py` régénère le modèle de références à partir des clips présents, réutilise les repères extraits dans `.cache/` et publie une empreinte SHA-256. Les vidéos restent dans le dossier d’origine. Les seuils proviennent de fenêtres voisines d’un même clip ; ce n’est pas un protocole indépendant. Pour un modèle général, il faudrait plusieurs prises des mêmes signes par signants distincts, annotations vérifiées, séparation des personnes et droits adaptés à la distribution.
 
 ASL, LSB/LSFB et LSF ne sont pas interchangeables. Aucun modèle de gestes génériques n’est présenté comme LSF.
 

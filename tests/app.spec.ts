@@ -1,15 +1,15 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-test("accueil caméra sobre, modèle absent explicite et texte éditable/exportable", async ({ page }) => {
+test("accueil caméra sobre, références chargées à la demande et texte éditable/exportable", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("Reconnaissance de signes LSF par caméra")).toBeVisible();
   await expect(page.getByRole("button", { name: "Activer la caméra" }).first()).toBeVisible();
-  await expect(page.getByText("Modèle indisponible")).toBeVisible();
-  await expect(page.getByText(/Aucun signe LSF ne sera reconnu/)).toBeVisible();
+  await expect(page.getByText("CAMÉRA INACTIVE")).toBeVisible();
+  await expect(page.getByText(/Activez la caméra pour charger/)).toBeVisible();
   await expect(page.getByRole("button", { name: /vocabulaire/i })).toBeVisible();
   await page.getByRole("button", { name: /vocabulaire/i }).click();
-  await expect(page.getByText(/Aucun signe LSF n’est actuellement disponible/)).toBeVisible();
+  await expect(page.getByText(/sélectionnez-le dans l’outil d’entraînement/)).toBeVisible();
   await page.getByLabel("TEXTE · MODIFIABLE").fill("Texte saisi manuellement.");
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "Exporter .txt" }).click();
@@ -29,7 +29,8 @@ test("aucun démarrage automatique, caméra synthétique et libération à l’a
   await page.locator("video").evaluate(v => { (window as any).testStream = (v as HTMLVideoElement).srcObject; });
   await page.getByRole("button", { name: "Arrêter la caméra" }).click();
   expect(await page.evaluate(() => (window as any).testStream.getTracks().every((t: MediaStreamTrack) => t.readyState === "ended"))).toBe(true);
-  await expect(page.getByText("Aucun signe LSF ne sera reconnu", { exact: false })).toBeVisible();
+  await expect(page.getByText("CAMÉRA INACTIVE")).toBeVisible();
+  await expect(page.locator("textarea")).toHaveValue("");
 });
 
 for (const [name, message] of [

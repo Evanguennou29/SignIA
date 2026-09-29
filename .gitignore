@@ -44,6 +44,7 @@ env/
 test-results/
 playwright-report/
 .sites-runtime/
+.wrangler/
 .cache/
 .vite/
 *.onnx
