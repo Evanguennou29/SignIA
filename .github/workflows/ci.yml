@@ -1,6 +1,12 @@
 name: Verify SignIA
 on: [push, pull_request]
 jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build container image
+        run: docker build --tag signia:ci .
   frontend:
     runs-on: ubuntu-latest
     steps:
